@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sabnahis Library Catalog</title>
+  <meta name="description" content="Web-based library catalog and borrowing system for Sablayan National Comprehensive High School.">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Poppins', sans-serif; background: #f2f4f8; color: #333; }
+    header { background: linear-gradient(135deg, #4b2e2e, #8b5e3c); color: #fff; padding: 20px; }
+    header h1 { margin: 0; font-weight: 600; }
+    nav { margin-top: 10px; }
+    nav a { color: #fff; margin-right: 15px; text-decoration: none; font-weight: 500; }
+    nav a:hover { text-decoration: underline; }
+    .container { padding: 30px; max-width: 1100px; margin: auto; }
+    .card { background: #fff; border-radius: 12px; padding: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); margin-bottom: 25px; animation: fadeIn 0.5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    h2 { margin-top: 0; color: #4b2e2e; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+    th { background: #f7f2ed; text-align: left; }
+    input, select { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #ccc; font-family: inherit; }
+    button { background: #4b2e2e; color: #fff; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    button:hover { background: #6b3f2f; }
+    .hidden { display: none; }
+    .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; }
+    .hero img { width: 100%; border-radius: 12px; }
+    .badge { display: inline-block; padding: 5px 10px; background: #e6d3c2; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
+    @media (max-width: 768px) { .hero { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Sabnahis Library Catalog</h1>
+  <nav>
+    <a href="#" onclick="showPage('home')">Home</a>
+    <a href="#" onclick="showPage('catalog')">Catalog</a>
+    <a href="#" onclick="showPage('borrow')">Borrow</a>
+    <a href="#" onclick="showPage('return')">Return</a>
+    <a href="#" onclick="showPage('history')">History</a>
+    <a href="#" onclick="showPage('admin')">Admin</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div id="home" class="card">
+    <div class="hero">
+      <div>
+        <span class="badge">Web-Based System</span>
+        <h2>Welcome to Sabnahis Library</h2>
+        <p>Explore, borrow, and return books efficiently through this online platform for Sablayan National Comprehensive High School.</p>
+      </div>
+      <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f" alt="Library">
+    </div>
+  </div>
+
+  <div id="catalog" class="card hidden">
+    <h2>📖 Book Catalog</h2>
+    <table>
+      <thead><tr><th>Title</th><th>Author</th><th>Available</th></tr></thead>
+      <tbody id="bookTable"></tbody>
+    </table>
+  </div>
+
+  <div id="borrow" class="card hidden">
+    <h2>📝 Borrow a Book</h2>
+    <form onsubmit="borrowBook(event)">
+      <input id="studentName" placeholder="Student Name" required />
+      <input id="gradeSection" placeholder="Grade & Section" required />
+      <input id="borrowDate" type="date" required />
+      <select id="bookSelect"></select>
+      <button type="submit">Borrow Book</button>
+    </form>
+  </div>
+
+  <div id="return" class="card hidden">
+    <h2>🔄 Return a Book</h2>
+    <form onsubmit="returnBook(event)">
+      <input id="returnStudent" placeholder="Student Name" required />
+      <input id="returnGrade" placeholder="Grade & Section" required />
+      <input id="returnDate" type="date" required />
+      <select id="returnSelect"></select>
+      <button type="submit">Return Book</button>
+    </form>
+  </div>
+
+  <div id="history" class="card hidden">
+    <h2>📊 Borrowing History</h2>
+    <table>
+      <thead><tr><th>Student</th><th>Grade & Section</th><th>Book</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </div>
+
+  <div id="admin" class="card hidden">
+    <h2>🔐 Admin Panel</h2>
+    <input id="adminUser" placeholder="Username" />
+    <input id="adminPass" type="password" placeholder="Password" />
+    <button onclick="adminLogin()">Login</button>
+    <p id="adminStatus"></p>
+
+    <div id="adminPanel" class="hidden">
+      <h3>📘 Manage Catalog</h3>
+      <input id="bookTitle" placeholder="Book Title" />
+      <input id="bookAuthor" placeholder="Author" />
+      <input id="bookQty" type="number" placeholder="Number of Copies" />
+      <button onclick="addBook()">Add Book</button>
+      <button onclick="editBook()">Edit Last Book</button>
+      <button onclick="clearCatalog()">Clear Catalog</button>
+      <h3>🗑️ Manage Borrow History</h3>
+      <button onclick="clearHistory()">Clear Borrow History</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_USER = 'admin';
+  const ADMIN_PASS = '1234';
+
+  let books = JSON.parse(localStorage.getItem('books')) || [];
+  let history = JSON.parse(localStorage.getItem('history')) || [];
+
+  function showPage(page) {
+    document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+    document.getElementById(page).classList.remove('hidden');
+    render();
+  }
+
+  function render() {
+    const table = document.getElementById('bookTable');
+    table.innerHTML = '';
+    books.forEach(b => table.innerHTML += `<tr><td>${b.title}</td><td>${b.author}</td><td>${b.available}</td></tr>`);
+
+    const sel = document.getElementById('bookSelect');
+    const ret = document.getElementById('returnSelect');
+    sel.innerHTML = ret.innerHTML = '';
+    books.forEach((b,i)=>{
+      if(b.available>0) sel.innerHTML += `<option value="${i}">${b.title}</option>`;
+      ret.innerHTML += `<option value="${i}">${b.title}</option>`;
+    });
+
+    const hist = document.getElementById('historyTable');
+    hist.innerHTML = '';
+    history.forEach(h => hist.innerHTML += `<tr><td>${h.student}</td><td>${h.grade}</td><td>${h.book}</td><td>${h.status}</td><td>${h.date}</td></tr>`);
+
+    localStorage.setItem('books', JSON.stringify(books));
+    localStorage.setItem('history', JSON.stringify(history));
+  }
+
+  function borrowBook(e){
+    e.preventDefault();
+    const i = bookSelect.value;
+    if(books[i]){
+      books[i].available--;
+      const date = borrowDate.value;
+      history.push({student: studentName.value, grade: gradeSection.value, book: books[i].title, status:'Borrowed', date: date});
+      render();
+      e.target.reset();
+    }
+  }
+
+  function returnBook(e){
+    e.preventDefault();
+    const i = returnSelect.value;
+    if(books[i]){
+      books[i].available++;
+      const date = returnDate.value;
+      const grade = returnGrade.value;
+      history.push({student: returnStudent.value, grade: grade, book: books[i].title, status:'Returned', date: date});
+      render();
+      e.target.reset();
+    }
+  }
+
+  function adminLogin(){
+    if(adminUser.value === ADMIN_USER && adminPass.value === ADMIN_PASS){
+      adminStatus.textContent = 'Login successful';
+      document.getElementById('adminPanel').classList.remove('hidden');
+    } else {
+      adminStatus.textContent = 'Invalid credentials';
+    }
+  }
+
+  function addBook(){
+    const title = bookTitle.value.trim();
+    const author = bookAuthor.value.trim();
+    const qty = parseInt(bookQty.value);
+    if(!title || !author || qty <= 0){ alert('Please complete all book details.'); return; }
+    books.push({title, author, available: qty});
+    render();
+    bookTitle.value = bookAuthor.value = bookQty.value = '';
+  }
+
+  function editBook(){
+    if(books.length === 0){ alert('No book to edit.'); return; }
+    const last = books[books.length-1];
+    const newTitle = prompt('Enter new title:', last.title);
+    const newAuthor = prompt('Enter new author:', last.author);
+    const newQty = parseInt(prompt('Enter new quantity:', last.available));
+    if(newTitle) last.title = newTitle;
+    if(newAuthor) last.author = newAuthor;
+    if(!isNaN(newQty)) last.available = newQty;
+    render();
+  }
+
+  function clearCatalog(){
+    if(confirm('Are you sure you want to clear all books from catalog?')){
+      books = [];
+      localStorage.setItem('books', JSON.stringify(books));
+      render();
+    }
+  }
+
+  function clearHistory(){
+    if(confirm('Are you sure you want to clear all borrow history?')){
+      history = [];
+      localStorage.setItem('history', JSON.stringify(history));
+      render();
+    }
+  }
+
+  render();
+</script>
+
+</body>
+</html>
